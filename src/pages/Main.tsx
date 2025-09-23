@@ -8,13 +8,13 @@ type Track = {
   url: string;
 };
 
-const emotions = ['슬픔', '행복', '분노', '편안함'];
+const emotions = ['Sad', 'Happy', 'Angry', 'Chill'];
 
-const emotionMap: Record<string, string> = {
-  슬픔: 'sad',
-  행복: 'happy',
-  분노: 'angry',
-  편안함: 'chill',
+const emotionDisplay: Record<string, string> = {
+  Sad: 'Sad😭',
+  Happy: 'Happy😊',
+  Angry: 'Angry😡',
+  Chill: 'Chill🫠',
 };
 
 const Main = () => {
@@ -29,7 +29,7 @@ const Main = () => {
       const response = await axios.get(`https://ws.audioscrobbler.com/2.0/`, {
         params: {
           method: 'tag.gettoptracks',
-          tag: emotionMap[emotion] || emotion,
+          tag: emotion.toLowerCase(),
           api_key: apiKey,
           format: 'json',
           limit: 10,
@@ -97,57 +97,67 @@ const Main = () => {
   };
 
   return (
-    <div className="min-h-screen bg-yellow-100 p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Moodify</h1>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gray-900">
+      <div className="relative z-10 bg-gray-900 p-10 rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col gap-6 ring-2 ring-pink-400/50 animate-fade-in">
+        <h1 className="text-3xl font-bold mb-2 text-center text-pink-400">
+          🎵 Moodify
+        </h1>
 
-      <div className="flex justify-center mb-6 gap-2">
-        <input
-          type="text"
-          placeholder="노래나 아티스트 검색..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="px-4 py-2 rounded border border-gray-300 w-64"
-        />
-        <button
-          onClick={searchTracks}
-          className="bg-blue-400 text-white px-4 py-2 rounded hover:bg-blue-500"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            searchTracks();
+          }}
+          className="flex justify-center gap-2"
         >
-          검색
-        </button>
-      </div>
-
-      <div className="flex gap-4 justify-center mb-6">
-        {emotions.map((emotion) => (
+          <input
+            type="text"
+            placeholder="노래나 아티스트 검색하세요!"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-pink-400 bg-gray-800 text-white w-64 focus:outline-none focus:ring-2 focus:ring-pink-300"
+          />
           <button
-            key={emotion}
-            onClick={() => fetchEmotionTracks(emotion)}
-            className="bg-pink-300 text-white px-4 py-2 rounded hover:bg-pink-400"
+            type="submit"
+            className="bg-pink-400 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition"
           >
-            {emotion}
+            검색
           </button>
-        ))}
-      </div>
+        </form>
 
-      {loading ? (
-        <p className="text-center">Loading..🎵</p>
-      ) : tracks.length === 0 ? (
-        <p className="text-center">결과가 없습니다😖</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tracks.map((track, idx) => (
-            <a
-              key={idx}
-              href={track.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white p-4 rounded shadow hover:shadow-md transition"
+        <div className="flex gap-4 justify-center flex-wrap">
+          {emotions.map((emotion) => (
+            <button
+              key={emotion}
+              onClick={() => fetchEmotionTracks(emotion)}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition"
             >
-              <h3 className="font-bold">{track.name}</h3>
-              <p>{track.artist}</p>
-            </a>
+              {emotionDisplay[emotion]}
+            </button>
           ))}
         </div>
-      )}
+
+        {loading ? (
+          <p className="text-center text-gray-300">Loading..🎵</p>
+        ) : tracks.length === 0 ? (
+          <p className="text-center text-gray-300">No results 😖</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tracks.map((track, idx) => (
+              <a
+                key={idx}
+                href={track.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gray-800 p-4 rounded-xl shadow hover:shadow-lg transition border border-pink-400/20"
+              >
+                <h3 className="font-bold text-pink-300">{track.name}</h3>
+                <p className="text-gray-300">{track.artist}</p>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
