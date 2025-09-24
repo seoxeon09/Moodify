@@ -8,6 +8,28 @@ type Track = {
   url: string;
 };
 
+type LastFmTopTracksResponse = {
+  tracks: {
+    track: {
+      name: string;
+      artist: { name: string };
+      url: string;
+    }[];
+  };
+};
+
+type LastFmTrackSearchResponse = {
+  results: {
+    trackmatches: {
+      track: {
+        name: string;
+        artist: string;
+        url: string;
+      }[];
+    };
+  };
+};
+
 const emotions = ['Sad', 'Happy', 'Angry', 'Chill'];
 
 const emotionDisplay: Record<string, string> = {
@@ -26,18 +48,21 @@ const Main = () => {
     setLoading(true);
     try {
       const apiKey = import.meta.env.VITE_LASTFM_API_KEY;
-      const response = await axios.get(`https://ws.audioscrobbler.com/2.0/`, {
-        params: {
-          method: 'tag.gettoptracks',
-          tag: emotion.toLowerCase(),
-          api_key: apiKey,
-          format: 'json',
-          limit: 10,
-        },
-      });
+      const response = await axios.get<LastFmTopTracksResponse>(
+        `https://ws.audioscrobbler.com/2.0/`,
+        {
+          params: {
+            method: 'tag.gettoptracks',
+            tag: emotion.toLowerCase(),
+            api_key: apiKey,
+            format: 'json',
+            limit: 10,
+          },
+        }
+      );
 
       const data =
-        response.data.tracks?.track?.map((t: any) => ({
+        response.data.tracks?.track?.map((t) => ({
           name: t.name,
           artist: t.artist.name,
           url: t.url,
@@ -70,18 +95,21 @@ const Main = () => {
     setLoading(true);
     try {
       const apiKey = import.meta.env.VITE_LASTFM_API_KEY;
-      const response = await axios.get(`https://ws.audioscrobbler.com/2.0/`, {
-        params: {
-          method: 'track.search',
-          track: searchQuery,
-          api_key: apiKey,
-          format: 'json',
-          limit: 10,
-        },
-      });
+      const response = await axios.get<LastFmTrackSearchResponse>(
+        `https://ws.audioscrobbler.com/2.0/`,
+        {
+          params: {
+            method: 'track.search',
+            track: searchQuery,
+            api_key: apiKey,
+            format: 'json',
+            limit: 10,
+          },
+        }
+      );
 
       const data =
-        response.data.results?.trackmatches?.track?.map((t: any) => ({
+        response.data.results?.trackmatches?.track?.map((t) => ({
           name: t.name,
           artist: t.artist,
           url: t.url,
