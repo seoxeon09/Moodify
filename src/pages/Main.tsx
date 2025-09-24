@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 type Track = {
   name: string;
@@ -23,7 +25,7 @@ type LastFmTrackSearchResponse = {
     trackmatches: {
       track: {
         name: string;
-        artist: string;
+        artist: { name: string };
         url: string;
       }[];
     };
@@ -43,6 +45,7 @@ const Main = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   const fetchEmotionTracks = async (emotion: string) => {
     setLoading(true);
@@ -73,13 +76,23 @@ const Main = () => {
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
         for (const track of data) {
-          await supabase.from('recent_tracks').insert({
-            user_id: userData.user.id,
-            track_name: track.name,
-            artist_name: track.artist,
-            url: track.url,
-            emotion,
-          });
+          const { data: existing } = await supabase
+            .from('recent_tracks')
+            .select('id')
+            .eq('user_id', userData.user.id)
+            .eq('track_name', track.name)
+            .eq('artist_name', track.artist)
+            .eq('emotion', emotion);
+
+          if (!existing || existing.length === 0) {
+            await supabase.from('recent_tracks').insert({
+              user_id: userData.user.id,
+              track_name: track.name,
+              artist_name: track.artist,
+              url: track.url,
+              emotion,
+            });
+          }
         }
       }
     } catch (err) {
@@ -111,7 +124,7 @@ const Main = () => {
       const data =
         response.data.results?.trackmatches?.track?.map((t) => ({
           name: t.name,
-          artist: t.artist,
+          artist: t.artist.name,
           url: t.url,
         })) || [];
 
@@ -130,6 +143,13 @@ const Main = () => {
         <h1 className="text-3xl font-bold mb-2 text-center text-pink-400">
           🎵 Moodify
         </h1>
+
+        <Link
+          to="/mypage"
+          className="absolute top-5 right-5 bg-pink-400 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:bg-pink-500 transition"
+        >
+          Mypage
+        </Link>
 
         <form
           onSubmit={(e) => {
