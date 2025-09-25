@@ -11,8 +11,8 @@ type Track = {
 };
 
 type LastFmTopTracksResponse = {
-  tracks: {
-    track: {
+  tracks?: {
+    track?: {
       name: string;
       artist: { name: string };
       url: string;
@@ -21,9 +21,9 @@ type LastFmTopTracksResponse = {
 };
 
 type LastFmTrackSearchResponse = {
-  results: {
-    trackmatches: {
-      track: {
+  results?: {
+    trackmatches?: {
+      track?: {
         name: string;
         artist: { name: string };
         url: string;
@@ -51,6 +51,8 @@ const Main = () => {
     setLoading(true);
     try {
       const apiKey = import.meta.env.VITE_LASTFM_API_KEY;
+      if (!apiKey) throw new Error('API Key가 설정되지 않았습니다.');
+
       const response = await axios.get<LastFmTopTracksResponse>(
         `https://ws.audioscrobbler.com/2.0/`,
         {
@@ -64,8 +66,12 @@ const Main = () => {
         }
       );
 
+      if (!response.data?.tracks?.track) {
+        throw new Error('데이터 형식이 올바르지 않습니다.');
+      }
+
       const data =
-        response.data.tracks?.track?.map((t) => ({
+        response.data.tracks.track.map((t) => ({
           name: t.name,
           artist: t.artist.name,
           url: t.url,
@@ -73,10 +79,13 @@ const Main = () => {
 
       setTracks(data);
 
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
+      if (userError) throw userError;
+
       if (userData?.user) {
         for (const track of data) {
-          const { data: existing } = await supabase
+          const { data: existing, error: selectError } = await supabase
             .from('recent_tracks')
             .select('id')
             .eq('user_id', userData.user.id)
@@ -84,20 +93,30 @@ const Main = () => {
             .eq('artist_name', track.artist)
             .eq('emotion', emotion);
 
+          if (selectError) {
+            console.error('조회 중 오류:', selectError.message);
+            continue;
+          }
+
           if (!existing || existing.length === 0) {
-            await supabase.from('recent_tracks').insert({
-              user_id: userData.user.id,
-              track_name: track.name,
-              artist_name: track.artist,
-              url: track.url,
-              emotion,
-            });
+            const { error: insertError } = await supabase
+              .from('recent_tracks')
+              .insert({
+                user_id: userData.user.id,
+                track_name: track.name,
+                artist_name: track.artist,
+                url: track.url,
+                emotion,
+              });
+            if (insertError) {
+              console.error('저장 중 오류:', insertError.message);
+            }
           }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('곡을 가져오는 중 오류가 발생했습니다.');
+      alert(err.message || '곡을 가져오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -108,6 +127,8 @@ const Main = () => {
     setLoading(true);
     try {
       const apiKey = import.meta.env.VITE_LASTFM_API_KEY;
+      if (!apiKey) throw new Error('API Key가 설정되지 않았습니다.');
+
       const response = await axios.get<LastFmTrackSearchResponse>(
         `https://ws.audioscrobbler.com/2.0/`,
         {
@@ -121,17 +142,21 @@ const Main = () => {
         }
       );
 
+      if (!response.data?.results?.trackmatches?.track) {
+        throw new Error('검색 결과 형식이 올바르지 않습니다.');
+      }
+
       const data =
-        response.data.results?.trackmatches?.track?.map((t) => ({
+        response.data.results.trackmatches.track.map((t) => ({
           name: t.name,
           artist: t.artist.name,
           url: t.url,
         })) || [];
 
       setTracks(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('검색 중 오류가 발생했습니다.');
+      alert(err.message || '검색 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
