@@ -175,7 +175,6 @@ const Main = () => {
         >
           Mypage
         </Link>
-
         <form
           onSubmit={(e) => {
             e.preventDefault();
