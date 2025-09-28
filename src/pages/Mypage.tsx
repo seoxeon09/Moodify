@@ -24,37 +24,53 @@ const MyPage = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserAndTracks = async () => {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+      try {
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
 
-      if (userError || !userData?.user) {
-        navigate('/login');
-        return;
+        if (userError) {
+          console.error('Error fetching user:', userError.message);
+          setError('사용자 정보를 불러올 수 없습니다.');
+          navigate('/login');
+          return;
+        }
+
+        if (!userData?.user) {
+          setError('로그인이 필요합니다.');
+          navigate('/login');
+          return;
+        }
+
+        setUser({
+          id: userData.user.id,
+          email: userData.user.email ?? null,
+          user_metadata: userData.user.user_metadata,
+        });
+
+        const { data: tracks, error: tracksError } = await supabase
+          .from('recent_tracks')
+          .select('*')
+          .eq('user_id', userData.user.id)
+          .order('id', { ascending: false })
+          .limit(30);
+
+        if (tracksError) {
+          console.error('Error fetching tracks:', tracksError.message);
+          setError('최근 재생 목록을 불러오는 중 문제가 발생했습니다.');
+        } else {
+          setRecentTracks(tracks || []);
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setError('알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
       }
-
-      setUser({
-        id: userData.user.id,
-        email: userData.user.email ?? null,
-        user_metadata: userData.user.user_metadata,
-      });
-
-      const { data: tracks, error: tracksError } = await supabase
-        .from('recent_tracks')
-        .select('*')
-        .eq('user_id', userData.user.id)
-        .order('id', { ascending: false })
-        .limit(30);
-
-      if (tracksError) {
-        console.error('Error fetching tracks:', tracksError.message);
-      }
-
-      setRecentTracks(tracks || []);
-      setLoading(false);
     };
 
     fetchUserAndTracks();
@@ -77,6 +93,8 @@ const MyPage = () => {
 
         {loading ? (
           <p className="text-center">Loading..🎵</p>
+        ) : error ? (
+          <p className="text-center text-red-400">{error}</p>
         ) : recentTracks.length === 0 ? (
           <p className="text-center">최근에 재생한 곡이 없어요..</p>
         ) : (
