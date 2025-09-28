@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 
 type Track = {
@@ -45,7 +44,6 @@ const Main = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
 
   const fetchEmotionTracks = async (emotion: string) => {
     setLoading(true);
